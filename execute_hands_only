@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT="/home/user/tool_grasping/tool_grasping_avatar"
+EPISODE="553_human_29s_half_speed"
+MODE=""
+START_TRANSITION_S="3.0"
+
+if [[ $# -gt 0 && "$1" != -* ]]; then
+  EPISODE="$1"
+  shift
+fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check-live|--execute)
+      if [[ -n "$MODE" ]]; then
+        echo "choose exactly one of --check-live or --execute" >&2
+        exit 2
+      fi
+      MODE="$1"
+      shift
+      ;;
+    --start-transition-s)
+      [[ $# -ge 2 ]] || { echo "--start-transition-s requires a value" >&2; exit 2; }
+      START_TRANSITION_S="$2"
+      shift 2
+      ;;
+    -h|--help)
+      echo "usage: ./execute_hands_only [episode_name] {--check-live|--execute} [--start-transition-s SECONDS]"
+      echo "This entry never creates an FR3, MoveIt, controller, or trajectory-action client."
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+[[ -n "$MODE" ]] || { echo "choose --check-live or --execute" >&2; exit 2; }
+
+source "$PROJECT/ops/lib/deployment_env.sh"
+LITCHI_REPO="$(deployment_env_value "$PROJECT/docker/.env" LITCHI_REPO)"
+DOMAIN="$(awk -F= '$1 == "TELEOP_ROS_DOMAIN_ID" { print $2; exit }' "$PROJECT/docker/.env")"
+
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI="file://$PROJECT/config/cyclonedds.xml"
+export ROS_LOCALHOST_ONLY=1
+export ROS_DOMAIN_ID="$DOMAIN"
+
+cd "$LITCHI_REPO"
+exec pixi run -e ros2 bash -c '
+  source "$1/ros2/install/setup.bash"
+  exec python3 "$2/execute_hands_only.py" \
+    "$2/output/episode$3/pyroki_smoothed.json" \
+    "$2/output/episode$3/pyroki_validation.json" \
+    "$4" --start-transition-s "$5"
+' -- "$LITCHI_REPO" "$ROOT" "$EPISODE" "$MODE" "$START_TRANSITION_S"

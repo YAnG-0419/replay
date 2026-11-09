@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-30T15:34:40.228378+08:00",
+  "purpose": "Fixed head-camera eye-to-hand calibration for two FR3 arms; coordinate conversion reference for future EEF pose files",
+  "status": {
+    "extrinsics_solved": true,
+    "raw_samples_offline_verified": 27,
+    "new_pose_consistency_checked": true,
+    "absolute_positioning_accepted": false,
+    "eef_file_compatibility": "pending_file_definition",
+    "task_execution_readiness": "undetermined_task_and_tcp_not_defined",
+    "tf_published_by_this_work": false
+  },
+  "conventions": {
+    "transform": "A_T_B maps coordinates expressed in B into A; p_A = A_T_B @ p_B",
+    "pose": "A_T_B is the pose of frame B expressed in frame A",
+    "matrix_storage": "4x4 row-major nested JSON lists; multiply column vectors; do not transpose",
+    "translation_unit": "metre",
+    "rotation": "3x3 rotation matrix; right-handed",
+    "camera_axes": "optical convention: +X image right, +Y image down, +Z forward",
+    "base_frames": {
+      "left_base": "libfranka O of 172.16.0.2",
+      "right_base": "libfranka O of 172.16.1.2"
+    },
+    "camera_frame": "camera_color_optical_frame",
+    "world_frame": "not calibrated as gravity-aligned world; do not assume either base is a shared world"
+  },
+  "devices": {
+    "camera": {
+      "model": "Orbbec Gemini 435Le",
+      "serial": "CP4N56300076",
+      "ip_at_calibration": "192.168.1.10",
+      "serial_provenance": "SDK discovery; not separately recorded in every sample"
+    },
+    "left_robot": {
+      "model": "Franka FR3",
+      "ip_at_calibration": "172.16.0.2"
+    },
+    "right_robot": {
+      "model": "Franka FR3",
+      "ip_at_calibration": "172.16.1.2"
+    }
+  },
+  "camera_intrinsics": {
+    "image_width": 1280,
+    "image_height": 800,
+    "K": [
+      [
+        611.0026245117188,
+        0.0,
+        640.8522338867188
+      ],
+      [
+        0.0,
+        610.8532104492188,
+        407.376953125
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "distortion_coefficients": [
+      -0.03331918641924858,
+      0.03951804339885712,
+      0.0004237184184603393,
+      0.000207438541110605,
+      -0.013875801116228104,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "driver_distortion_model": "plumb_bob",
+    "pose_estimation_distortion_convention": "OpenCV eight-coefficient vector used as recorded; ROS driver label must not be interpreted as five coefficients",
+    "source": "calibration_data/left/sample_001/sample.json",
+    "scope": "Recorded color optical image profile only; use matching live CameraInfo after profile changes; RGB-D depth scale/alignment not verified"
+  },
+  "board": {
+    "squares": [
+      14,
+      9
+    ],
+    "square_m": 0.02,
+    "marker_m": 0.015,
+    "dictionary": "DICT_5X5_250",
+    "dimension_provenance": "20/15 mm confirmed by user from board model; no independent dimensional metrology"
+  },
+  "solver": {
+    "method": "OpenCV Park",
+    "opencv_version": "4.6.0",
+    "samples_per_arm": 10,
+    "validation_samples_excluded_from_fit": true
+  },
+  "transforms": {
+    "left_base_T_camera": [
+      [
+        -0.4912346390279037,
+        -0.09640323942278964,
+        0.8656760045466876,
+        -0.19509789141307263
+      ],
+      [
+        -0.500569621236863,
+        0.844589326273396,
+        -0.18999716903103264,
+        -0.23700072558634128
+      ],
+      [
+        -0.7128243708753951,
+        -0.5266643004550626,
+        -0.4631480658626109,
+        0.08519109631985335
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "camera_T_left_base": [
+      [
+        -0.49123463902790687,
+        -0.500569621236877,
+        -0.7128243708753911,
+        -0.15374791606464203
+      ],
+      [
+        -0.09640323942278224,
+        0.8445893262734213,
+        -0.5266643004550665,
+        0.22622732356080133
+      ],
+      [
+        0.8656760045466875,
+        -0.18999716903102867,
+        -0.463148065862611,
+        0.16331818770350312
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "right_base_T_camera": [
+      [
+        0.5209290041432428,
+        -0.08890648240188948,
+        0.8489573664379372,
+        -0.2181949150938659
+      ],
+      [
+        -0.4989217833235849,
+        -0.8386997263335405,
+        0.21831129877587255,
+        0.25472450085164866
+      ],
+      [
+        0.69261102125762,
+        -0.537288010693451,
+        -0.4812603939631308,
+        0.050695834493003404
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "camera_T_right_base": [
+      [
+        0.5209290041432592,
+        -0.4989217833236164,
+        0.6926110212576135,
+        0.2056391683483872
+      ],
+      [
+        -0.08890648240186474,
+        -0.8386997263335855,
+        -0.5372880106934608,
+        0.22147669084095847
+      ],
+      [
+        0.8489573664379461,
+        0.21831129877585542,
+        -0.4812603939631352,
+        0.15402684115767748
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "left_base_T_right_base": [
+      [
+        0.4875945226082251,
+        0.5149278855273801,
+        -0.7050537952729272,
+        -0.1841287040540735
+      ],
+      [
+        -0.49715019661966675,
+        -0.5000902774395422,
+        -0.7090496431220086,
+        -0.1821452608700819
+      ],
+      [
+        -0.7176999815546169,
+        0.6962463551910253,
+        0.012155219445744686,
+        -0.24937461450738674
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "validation": {
+    "left": {
+      "new_pose_checks": {
+        "count": 3,
+        "translation_rms_mm": 1.3930101116530433,
+        "translation_max_mm": 1.677295905151665,
+        "rotation_max_deg": 0.4129099024713226
+      },
+      "condition": "new mount inferred from one reference pose",
+      "fit_rms_mm": 0.4716385540679129,
+      "leave_one_out_rms_mm": 0.681129159216723
+    },
+    "right": {
+      "new_pose_checks": {
+        "count": 3,
+        "translation_rms_mm": 1.1278626697494976,
+        "translation_max_mm": 1.2852048676434706,
+        "rotation_max_deg": 0.22064838682197283
+      },
+      "condition": "original board mount estimated from training samples",
+      "fit_rms_mm": 1.115300293532915,
+      "leave_one_out_rms_mm": 1.2551498216501449
+    }
+  },
+  "eef_integration": {
+    "file_available": false,
+    "planned_content": "end-effector poses; task not defined",
+    "required_file_metadata": [
+      "arm: left or right",
+      "reference_frame: camera_color_optical_frame, left_base, or right_base (or a separately defined frame)",
+      "controlled_frame: flange, configured_EE, or a specifically calibrated TCP",
+      "translation units and orientation representation",
+      "absolute poses versus relative increments",
+      "timestamp/time interval and ordering if used as trajectory"
+    ],
+    "flange_T_task_tcp": {
+      "left": null,
+      "right": null
+    },
+    "sampling_configuration": {
+      "left_flange_T_configured_EE": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "right_flange_T_configured_EE": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "meaning": "Identity during recorded sampling; not evidence that a reinstalled hand fingertip or task TCP is at the flange"
+    },
+    "formulas": {
+      "camera_tcp_pose_to_left_base": "left_base_T_tcp = left_base_T_camera @ camera_T_tcp",
+      "camera_tcp_pose_to_right_base": "right_base_T_tcp = right_base_T_camera @ camera_T_tcp",
+      "tcp_target_to_flange_target": "base_T_flange_target = base_T_tcp_target @ inverse(flange_T_task_tcp)",
+      "right_base_pose_to_left_base": "left_base_T_tcp = left_base_T_right_base @ right_base_T_tcp"
+    },
+    "base_pose_note": "EEF poses already in the correct robot base frame do not need the camera extrinsics applied again",
+    "scope": "Pose transformations only; no trajectory execution, IK, grasp target orientation, TCP identification or collision validation is implied"
+  },
+  "validity_conditions": [
+    "Camera/head relative to both robot bases must remain fixed",
+    "Robot identity and frame definitions must match",
+    "Derived inter-base transform assumes camera and both bases did not move between the two acquisitions",
+    "Reinstalling board changes flange_T_board, not camera extrinsics; installing a hand changes task TCP and payload settings"
+  ],
+  "outstanding_items": [
+    "Future EEF file format/frame/units/pose convention",
+    "Task TCP transform after reinstalling end effector",
+    "Task tolerance, workspace, grasp/contact definition and trajectory timing",
+    "Actual TCP point-to-point validation; RGB-D validation if depth-based vision is used",
+    "Runtime kinematics, reachability, collision checking and controller/real-time readiness"
+  ],
+  "provenance": {
+    "original_data_directory": "calibration_data",
+    "offline_report": "calibration_data/整理与复核/复核报告.json",
+    "raw_data_sha256_manifest": "calibration_data/整理与复核/原始文件SHA256.json",
+    "original_camera_extrinsics_modified": false
+  }
+}

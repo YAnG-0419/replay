@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SESSION="replay-sharpa"
+
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  echo "Sharpa replay driver is already running in tmux session: $SESSION"
+  exit 0
+fi
+if pgrep -af '[s]harpa_driver' >/dev/null; then
+  echo "A Sharpa driver is already running outside the replay session; refusing a duplicate." >&2
+  exit 1
+fi
+
+mkdir -p "$ROOT/logs"
+: >"$ROOT/logs/sharpa_driver.log"
+tmux new-session -d -s "$SESSION" "$ROOT/run_sharpa_driver_process"
+echo "Started Sharpa replay driver. Log: $ROOT/logs/sharpa_driver.log"

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+uv venv --python 3.11 "$ROOT/.venv-pyroki"
+uv pip install --python "$ROOT/.venv-pyroki/bin/python" \
+  "jaxls @ git+https://github.com/brentyi/jaxls.git@50a58be88c5ef74532f09e3f55268b4f02c490e3" \
+  "pyroki @ git+https://github.com/chungmin99/pyroki.git@388e43e1fc0d0ee382968d3dd72970fd62a0450c"
+echo "PyRoki environment ready: $ROOT/.venv-pyroki"

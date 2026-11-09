@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SESSION="replay-sharpa"
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  tmux send-keys -t "$SESSION" C-c
+  for _ in {1..50}; do
+    tmux has-session -t "$SESSION" 2>/dev/null || {
+      echo "Sharpa replay driver stopped."
+      exit 0
+    }
+    sleep 0.1
+  done
+  echo "Sharpa driver is still shutting down; inspect tmux session: $SESSION" >&2
+  exit 1
+fi
+echo "Sharpa replay driver is not running."

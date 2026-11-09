@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DATA_ROOT="${EEF_REPLAY_DATA_ROOT:-/home/user/tool_grasping/tool_grasping_avatar/data_collection/data/stick/C}"
+URDF="${EEF_REPLAY_URDF:-/home/user/tool_grasping/tool_grasping_avatar/adapters/pico/assets/dual_fr3/dual_fr3_kinematics.urdf}"
+EPISODE="395"
+IK="pinocchio"
+FORCE=0
+START_FROM_CURRENT=0
+
+if [[ $# -gt 0 && "$1" != -* ]]; then
+  EPISODE="$1"
+  shift
+fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --ik)
+      IK="$2"
+      shift 2
+      ;;
+    --force)
+      FORCE=1
+      shift
+      ;;
+    --start-from-current)
+      START_FROM_CURRENT=1
+      shift
+      ;;
+    -h|--help)
+      echo "usage: ./replay_episode [episode_number] [--ik pinocchio|moveit|both] [--start-from-current] [--force]"
+      echo "All modes are plan-only and never publish robot commands."
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+case "$IK" in
+  pinocchio|moveit|both) ;;
+  *)
+    echo "--ik must be pinocchio, moveit, or both" >&2
+    exit 2
+    ;;
+esac
+
+set +u
+source /opt/ros/jazzy/setup.bash
+set -u
+EPISODE_DIR="$DATA_ROOT/episode$EPISODE"
+OUTPUT="$ROOT/output/episode$EPISODE"
+CAMERA="$OUTPUT/camera_link8.json"
+PLAN="$OUTPUT/base_link8_plan.json"
+mkdir -p "$OUTPUT"
+
+if [[ "$FORCE" == 1 || ! -f "$CAMERA" || ! -f "$PLAN" ]]; then
+  PYTHONPATH="$ROOT/src:${PYTHONPATH:-}" /usr/bin/python3 \
+    "$ROOT/experimental_pinocchio_pyroki/episode_rosbag_to_camera_eef.py" \
+    "$EPISODE_DIR" "$CAMERA" \
+    --calibration "$ROOT/config/handeye_calibration.json" \
+    --urdf "$URDF" \
+    --fps 30
+
+  PYTHONPATH="$ROOT/src:${PYTHONPATH:-}" /usr/bin/python3 -m eef_replay.cli \
+    "$CAMERA" "$PLAN" \
+    --calibration "$ROOT/config/handeye_calibration.json"
+else
+  echo "Reusing prepared episode$EPISODE files (pass --force to rebuild)."
+fi
+
+if [[ "$IK" == pinocchio || "$IK" == both ]]; then
+  /usr/bin/python3 \
+    "$ROOT/experimental_pinocchio_pyroki/solve_bimanual_plan.py" \
+    "$PLAN" "$OUTPUT/pinocchio_ik.json" \
+    --urdf "$URDF"
+
+  PYROKI_PYTHON="${EEF_REPLAY_PYROKI_PYTHON:-$ROOT/.venv-pyroki/bin/python}"
+  if [[ ! -x "$PYROKI_PYTHON" ]]; then
+    echo "PyRoki environment is missing; run ./setup_pyroki once." >&2
+    exit 1
+  fi
+  "$PYROKI_PYTHON" \
+    "$ROOT/experimental_pinocchio_pyroki/smooth_pinocchio_result.py" \
+    "$OUTPUT/pinocchio_ik.json" "$OUTPUT/pyroki_smoothed.json" \
+    --urdf "$URDF"
+
+  /usr/bin/python3 \
+    "$ROOT/experimental_pinocchio_pyroki/validate_smoothed_replay.py" \
+    "$PLAN" "$OUTPUT/pyroki_smoothed.json" \
+    "$OUTPUT/pyroki_validation.json" \
+    --urdf "$URDF"
+
+  if [[ "$START_FROM_CURRENT" == 1 ]]; then
+    /usr/bin/python3 \
+      "$ROOT/experimental_pinocchio_pyroki/capture_current_joint_state.py" \
+      "$OUTPUT/current_joint_state.json"
+    "$PYROKI_PYTHON" \
+      "$ROOT/experimental_pinocchio_pyroki/build_start_transition.py" \
+      "$OUTPUT/current_joint_state.json" "$OUTPUT/pyroki_smoothed.json" \
+      "$OUTPUT/start_to_frame0.json"
+  fi
+fi
+
+if [[ "$IK" == moveit || "$IK" == both ]]; then
+  /usr/bin/python3 \
+    "$ROOT/experimental_pinocchio_pyroki/moveit_kdl_plan_only.py" \
+    "$PLAN" "$OUTPUT/moveit_kdl_ik.json" \
+    --start-plan-output "$OUTPUT/moveit_start_to_frame0.json" \
+    --urdf "$URDF"
+fi
+
+echo "Done: $OUTPUT"

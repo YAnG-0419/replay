@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "reference_frame": "camera_color_optical_frame",
+  "translation_unit": "metre",
+  "pose_mode": "absolute",
+  "controlled_frame": "fr3_link8",
+  "samples": [
+    {
+      "t_s": 0.0,
+      "left": {
+        "eef_pose": {
+          "position_m": [-0.25, 0.10, 0.65],
+          "quaternion_wxyz": [1.0, 0.0, 0.0, 0.0]
+        },
+        "hand_joints_rad": {
+          "thumb_CMC_FE": 0.0, "thumb_CMC_AA": 0.0, "thumb_MCP_FE": 0.0, "thumb_MCP_AA": 0.0, "thumb_IP": 0.0,
+          "index_MCP_FE": 0.0, "index_MCP_AA": 0.0, "index_PIP": 0.0, "index_DIP": 0.0,
+          "middle_MCP_FE": 0.0, "middle_MCP_AA": 0.0, "middle_PIP": 0.0, "middle_DIP": 0.0,
+          "ring_MCP_FE": 0.0, "ring_MCP_AA": 0.0, "ring_PIP": 0.0, "ring_DIP": 0.0,
+          "pinky_CMC": 0.0, "pinky_MCP_FE": 0.0, "pinky_MCP_AA": 0.0, "pinky_PIP": 0.0, "pinky_DIP": 0.0
+        }
+      },
+      "right": {
+        "eef_pose": {
+          "position_m": [0.25, 0.10, 0.65],
+          "quaternion_wxyz": [1.0, 0.0, 0.0, 0.0]
+        },
+        "hand_joints_rad": {
+          "thumb_CMC_FE": 0.0, "thumb_CMC_AA": 0.0, "thumb_MCP_FE": 0.0, "thumb_MCP_AA": 0.0, "thumb_IP": 0.0,
+          "index_MCP_FE": 0.0, "index_MCP_AA": 0.0, "index_PIP": 0.0, "index_DIP": 0.0,
+          "middle_MCP_FE": 0.0, "middle_MCP_AA": 0.0, "middle_PIP": 0.0, "middle_DIP": 0.0,
+          "ring_MCP_FE": 0.0, "ring_MCP_AA": 0.0, "ring_PIP": 0.0, "ring_DIP": 0.0,
+          "pinky_CMC": 0.0, "pinky_MCP_FE": 0.0, "pinky_MCP_AA": 0.0, "pinky_PIP": 0.0, "pinky_DIP": 0.0
+        }
+      }
+    },
+    {
+      "t_s": 0.0333333333,
+      "left": {
+        "eef_pose": {"position_m": [-0.248, 0.10, 0.65], "quaternion_wxyz": [1.0, 0.0, 0.0, 0.0]},
+        "hand_joints_rad": {
+          "thumb_CMC_FE": 0.01, "thumb_CMC_AA": 0.0, "thumb_MCP_FE": 0.0, "thumb_MCP_AA": 0.0, "thumb_IP": 0.0,
+          "index_MCP_FE": 0.0, "index_MCP_AA": 0.0, "index_PIP": 0.0, "index_DIP": 0.0,
+          "middle_MCP_FE": 0.0, "middle_MCP_AA": 0.0, "middle_PIP": 0.0, "middle_DIP": 0.0,
+          "ring_MCP_FE": 0.0, "ring_MCP_AA": 0.0, "ring_PIP": 0.0, "ring_DIP": 0.0,
+          "pinky_CMC": 0.0, "pinky_MCP_FE": 0.0, "pinky_MCP_AA": 0.0, "pinky_PIP": 0.0, "pinky_DIP": 0.0
+        }
+      },
+      "right": {
+        "eef_pose": {"position_m": [0.248, 0.10, 0.65], "quaternion_wxyz": [1.0, 0.0, 0.0, 0.0]},
+        "hand_joints_rad": {
+          "thumb_CMC_FE": 0.01, "thumb_CMC_AA": 0.0, "thumb_MCP_FE": 0.0, "thumb_MCP_AA": 0.0, "thumb_IP": 0.0,
+          "index_MCP_FE": 0.0, "index_MCP_AA": 0.0, "index_PIP": 0.0, "index_DIP": 0.0,
+          "middle_MCP_FE": 0.0, "middle_MCP_AA": 0.0, "middle_PIP": 0.0, "middle_DIP": 0.0,
+          "ring_MCP_FE": 0.0, "ring_MCP_AA": 0.0, "ring_PIP": 0.0, "ring_DIP": 0.0,
+          "pinky_CMC": 0.0, "pinky_MCP_FE": 0.0, "pinky_MCP_AA": 0.0, "pinky_PIP": 0.0, "pinky_DIP": 0.0
+        }
+      }
+    }
+  ]
+}
+

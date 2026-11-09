@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT="/home/user/tool_grasping/tool_grasping_avatar"
+EPISODE="395"
+if [[ $# -gt 0 && "$1" != -* ]]; then
+  EPISODE="$1"
+  shift
+fi
+MODE=""
+EXTRA_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --execute|--check-live)
+      if [[ -n "$MODE" ]]; then
+        echo "choose exactly one of --check-live or --execute" >&2
+        exit 2
+      fi
+      MODE="$1"
+      shift
+      ;;
+    --acknowledge-unvalidated-eef|--acknowledge-skipped-collision)
+      EXTRA_ARGS+=("$1")
+      shift
+      ;;
+    --start-speed-scale)
+      if [[ $# -lt 2 ]]; then
+        echo "--start-speed-scale requires a value" >&2
+        exit 2
+      fi
+      EXTRA_ARGS+=("$1" "$2")
+      shift 2
+      ;;
+    -h|--help)
+      echo "usage: ./execute_episode [episode_name] {--check-live|--execute} [--start-speed-scale SCALE] [explicit waiver flags]"
+      echo "Only --execute sends real-hardware commands."
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+if [[ -z "$MODE" ]]; then
+  echo "usage: ./execute_episode [episode_name] {--check-live|--execute} [--start-speed-scale SCALE] [explicit waiver flags]" >&2
+  exit 2
+fi
+
+DOMAIN="$(awk -F= '$1 == "TELEOP_ROS_DOMAIN_ID" { print $2; exit }' "$PROJECT/docker/.env")"
+CONTAINER="$(cd "$PROJECT/docker" && docker compose ps -q moveit-real)"
+if [[ -z "$CONTAINER" ]]; then
+  echo "moveit-real is not running" >&2
+  exit 1
+fi
+
+# Execute inside the existing Humble MoveIt container so message type support
+# exactly matches its controller managers.  Only these three read-only inputs
+# are staged; --check-live never sends a command.
+STAGE="/tmp/eef_replay_runtime"
+docker exec "$CONTAINER" mkdir -p "$STAGE"
+docker cp "$ROOT/execute_real_replay.py" "$CONTAINER:$STAGE/execute_real_replay.py" >/dev/null
+docker cp "$ROOT/output/episode$EPISODE/pyroki_smoothed.json" "$CONTAINER:$STAGE/trajectory.json" >/dev/null
+docker cp "$ROOT/output/episode$EPISODE/pyroki_validation.json" "$CONTAINER:$STAGE/validation.json" >/dev/null
+
+exec docker exec -i \
+  -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+  -e CYCLONEDDS_URI=file:///workspace/franka_upper_body_teleop/config/cyclonedds.xml \
+  -e ROS_LOCALHOST_ONLY=1 \
+  -e ROS_DOMAIN_ID="$DOMAIN" \
+  "$CONTAINER" bash -lc '
+    source /opt/ros/humble/setup.bash
+    source /workspace/franka_upper_body_teleop/ros_ws/install/setup.bash
+    exec python3 /tmp/eef_replay_runtime/execute_real_replay.py \
+      /tmp/eef_replay_runtime/trajectory.json \
+      /tmp/eef_replay_runtime/validation.json "$@"
+  ' -- "$MODE" "${EXTRA_ARGS[@]}"

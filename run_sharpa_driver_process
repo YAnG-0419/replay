@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT="/home/user/tool_grasping/tool_grasping_avatar"
+
+source "$PROJECT/ops/lib/deployment_env.sh"
+LITCHI_REPO="$(deployment_env_value "$PROJECT/docker/.env" LITCHI_REPO)"
+DOMAIN="$(awk -F= '$1 == "TELEOP_ROS_DOMAIN_ID" { print $2; exit }' "$PROJECT/docker/.env")"
+CPUSET="$(awk -F= '$1 == "HOUSEKEEPING_CPUSET" { print $2; exit }' "$PROJECT/docker/.env")"
+
+read -r LEFT_SERIAL RIGHT_SERIAL < <(
+  /usr/bin/python3 - "$PROJECT/config/litchibot/hand_devices.json" <<'PY'
+import json
+import sys
+
+serials = json.load(open(sys.argv[1], encoding="utf-8"))["serials"]
+print(serials["left"], serials["right"])
+PY
+)
+
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export CYCLONEDDS_URI="file://$PROJECT/config/cyclonedds.xml"
+export ROS_LOCALHOST_ONLY=1
+export ROS_DOMAIN_ID="$DOMAIN"
+
+mkdir -p "$ROOT/logs"
+cd "$LITCHI_REPO"
+exec taskset -c "$CPUSET" pixi run -e ros2 bash -c '
+  source "$1/ros2/install/setup.bash"
+  exec ros2 run sharpa_driver sharpa_driver --ros-args \
+    -p use_fake_hardware:=false \
+    -p enable_left:=true \
+    -p enable_right:=true \
+    -p left_serial:="$2" \
+    -p right_serial:="$3" \
+    -p stop_on_command_timeout_s:=0.0 \
+    -p speed_coefficient:=0.5 \
+    -p current_coefficient:=0.6 \
+    -p interpolate:=true \
+    -p state_rate_hz:=30.0 \
+    -p publish_tactile:=true \
+    -p tactile_poll_rate_hz:=60.0
+' -- "$LITCHI_REPO" "$LEFT_SERIAL" "$RIGHT_SERIAL" \
+  >>"$ROOT/logs/sharpa_driver.log" 2>&1

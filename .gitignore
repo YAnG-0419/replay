@@ -1,0 +1,12 @@
+.pixi/
+.venv-pyroki/
+__pycache__/
+*.py[cod]
+input/
+output/
+logs/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.log
+.DS_Store
