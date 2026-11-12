@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "name": "franka-sharpa",
+  "controlled_frame": "fr3_link8",
+  "arms": [
+    {
+      "name": "left",
+      "joint_names": ["left_fr3v2_joint1", "left_fr3v2_joint2", "left_fr3v2_joint3", "left_fr3v2_joint4", "left_fr3v2_joint5", "left_fr3v2_joint6", "left_fr3v2_joint7"],
+      "base_frame": "left_fr3v2_link0",
+      "eef_frame": "left_fr3v2_link8",
+      "target_key": "base_T_link8_target",
+      "payload_keys": ["hand_joint_positions_rad"]
+    },
+    {
+      "name": "right",
+      "joint_names": ["right_fr3v2_joint1", "right_fr3v2_joint2", "right_fr3v2_joint3", "right_fr3v2_joint4", "right_fr3v2_joint5", "right_fr3v2_joint6", "right_fr3v2_joint7"],
+      "base_frame": "right_fr3v2_link0",
+      "eef_frame": "right_fr3v2_link8",
+      "target_key": "base_T_link8_target",
+      "payload_keys": ["hand_joint_positions_rad"]
+    }
+  ]
+}

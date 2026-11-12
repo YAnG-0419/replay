@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "template": true,
+  "name": "replace-with-body-name",
+  "controlled_frame": "replace-with-input-controlled-frame",
+  "arms": [
+    {
+      "name": "left",
+      "joint_names": ["replace-with-arm-joints-in-output-order"],
+      "base_frame": "replace-with-fixed-arm-base",
+      "eef_frame": "replace-with-controlled-tool-frame",
+      "target_key": "base_T_eef_target",
+      "payload_keys": []
+    }
+  ]
+}

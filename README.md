@@ -69,6 +69,33 @@ PYTHONPATH=src python -m eef_replay.cli \
 输出的 `left.base_T_link8_target` 和 `right.base_T_link8_target` 分别属于两个独立基座，
 不能把其中一个直接当作 `lychee_root`。之后可在独立实验目录中做每臂 IK 和关节平滑。
 
+## 可选 IK 与本体配置
+
+当前本体配置命名为 **`franka-sharpa`**。原来的 `pinocchio_ik.py` 与
+`solve_bimanual_plan.py` 保留原实现，`./replay_episode 395` 的默认流程仍为
+Pinocchio IK + PyRoki 平滑。可选求解器不会替换默认结果文件。
+
+新增的连续 IK、微分 IK、可微分局部解接口和本体扩展说明见 **[IK 使用说明](docs/ik.md)**。
+
+```bash
+# 原流程
+./replay_episode 395
+
+# 可选的连续 IK：使用上一帧 seed，参考指定 home
+./replay_episode 553 --ik continuous --home-state output/chahua_state.json
+
+# 可选的微分 IK：从同一起始姿态进行雅可比小步迭代
+./replay_episode 553 --ik differential --home-state output/chahua_state.json
+```
+
+新结果位于 `output/episodeN/ik/franka-sharpa/<backend>/run-*/`，不会覆盖
+`pinocchio_ik.json` 或 `pyroki_smoothed.json`。未提交实验里的 `--home-state` 和
+`--posture-aware` 作为连续 IK 的入口保留；旧求解脚本的参数没有扩张。
+新增模式是离线候选，不自动接入真机执行。
+
+目前 episode553 的近 home 首帧有解，但连续求解整段仍在第 529 帧失败。
+该结果只说明当前分支/求解尝试未成功，不证明整段全局不可解。
+
 ## 上真机前仍缺少的确认
 
 1. 确认实际 IK URDF 的目标帧就是左右 `link8`，不能传 `link7`。

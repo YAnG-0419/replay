@@ -8,6 +8,11 @@ EPISODE="395"
 IK="pinocchio"
 FORCE=0
 START_FROM_CURRENT=0
+POSTURE_AWARE=0
+HOME_STATE=""
+MAX_HOME_EXCURSION="1.2"
+REFERENCE="home"
+CONTINUOUS_MAX_STEP="0.12"
 
 if [[ $# -gt 0 && "$1" != -* ]]; then
   EPISODE="$1"
@@ -27,8 +32,28 @@ while [[ $# -gt 0 ]]; do
       START_FROM_CURRENT=1
       shift
       ;;
+    --posture-aware)
+      POSTURE_AWARE=1
+      shift
+      ;;
+    --home-state|--max-home-excursion|--reference|--continuous-max-step)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "$1 requires a value" >&2; exit 2
+      fi
+      case "$1" in
+        --home-state) HOME_STATE="$2"; POSTURE_AWARE=1 ;;
+        --max-home-excursion) MAX_HOME_EXCURSION="$2" ;;
+        --reference) REFERENCE="$2" ;;
+        --continuous-max-step) CONTINUOUS_MAX_STEP="$2" ;;
+      esac
+      shift 2
+      ;;
     -h|--help)
       echo "usage: ./replay_episode [episode_number] [--ik pinocchio|moveit|both] [--start-from-current] [--force]"
+      echo "Optional IK: --ik continuous|differential [--home-state state.json | --start-from-current]"
+      echo "Options: --max-home-excursion 1.2 --continuous-max-step 0.12 --reference home|previous|source"
+      echo "--posture-aware and --home-state select continuous IK when --ik is omitted."
+      echo "Optional outputs use a separate output/episodeN/ik/franka-sharpa/BACKEND/run-* directory."
       echo "All modes are plan-only and never publish robot commands."
       exit 0
       ;;
@@ -40,12 +65,22 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$IK" in
-  pinocchio|moveit|both) ;;
+  pinocchio|moveit|both|continuous|differential) ;;
   *)
-    echo "--ik must be pinocchio, moveit, or both" >&2
+    echo "--ik must be pinocchio, moveit, both, continuous, or differential" >&2
     exit 2
     ;;
 esac
+
+if [[ "$POSTURE_AWARE" == 1 && "$IK" == pinocchio ]]; then
+  IK="continuous"
+fi
+if [[ "$POSTURE_AWARE" == 1 && ( "$IK" == moveit || "$IK" == both ) ]]; then
+  echo "Home/posture-aware options require an optional IK backend" >&2; exit 2
+fi
+if [[ -n "$HOME_STATE" && "$START_FROM_CURRENT" == 1 ]]; then
+  echo "Choose either --home-state or --start-from-current" >&2; exit 2
+fi
 
 set +u
 source /opt/ros/jazzy/setup.bash
@@ -110,6 +145,26 @@ if [[ "$IK" == moveit || "$IK" == both ]]; then
     "$PLAN" "$OUTPUT/moveit_kdl_ik.json" \
     --start-plan-output "$OUTPUT/moveit_start_to_frame0.json" \
     --urdf "$URDF"
+fi
+
+if [[ "$IK" == continuous || "$IK" == differential ]]; then
+  NEW_ROOT="$OUTPUT/ik/franka-sharpa/$IK"
+  mkdir -p "$NEW_ROOT"
+  NEW_OUTPUT="$(mktemp -d "$NEW_ROOT/run-XXXXXX")"
+  IK_OPTIONS=()
+  if [[ "$START_FROM_CURRENT" == 1 ]]; then
+    /usr/bin/python3 "$ROOT/experimental_pinocchio_pyroki/capture_current_joint_state.py" "$NEW_OUTPUT/start_state.json"
+    HOME_STATE="$NEW_OUTPUT/start_state.json"
+  fi
+  if [[ -n "$HOME_STATE" ]]; then
+    IK_OPTIONS+=(--start-state "$HOME_STATE")
+  fi
+  /usr/bin/python3 "$ROOT/experimental_pinocchio_pyroki/solve_continuous_plan.py" \
+    "$PLAN" "$NEW_OUTPUT/ik.json" --urdf "$URDF" \
+    --backend "$IK" --robot franka-sharpa --reference "$REFERENCE" \
+    --max-home-excursion "$MAX_HOME_EXCURSION" --continuous-max-step "$CONTINUOUS_MAX_STEP" \
+    "${IK_OPTIONS[@]}"
+  echo "Optional offline IK results: $NEW_OUTPUT"
 fi
 
 echo "Done: $OUTPUT"

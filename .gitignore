@@ -1,5 +1,10 @@
 .pixi/
 .venv-pyroki/
+.venv-ik/
+.venv-placo/
+build/
+dist/
+*.egg-info/
 __pycache__/
 *.py[cod]
 input/
