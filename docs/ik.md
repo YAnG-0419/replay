@@ -8,6 +8,7 @@
 | MoveIt / KDL | `experimental_pinocchio_pyroki/moveit_kdl_plan_only.py` | 已有服务接口，另用 OMPL RRTConnect 规划到首帧 |
 | continuous | `eef_replay.ik.continuous.ContinuousIK` | 在目标完整位姿约束下，优先接近上一帧与参考构型，保持限位余量 |
 | differential | `eef_replay.ik.differential.DifferentialIK` | 由当前 seed 反复求有界雅可比增量，适合小步目标跟踪 |
+| placo | `eef_replay.ik.placo_backend.PlacoIK` | 可选 PlaCo 0.11.0 QP 适配器，逐帧使用相同 seed、边界和后验验证 |
 | 局部可微分接口 | `eef_replay.ik.sensitivity.solution_jacobian` | 计算 continuous 解对目标局部扰动的梯度，供离线优化使用 |
 | PyRoki | `experimental_pinocchio_pyroki/pyroki_smoothing.py` | 原流程中平滑已有 IK 轨迹，不重新搜索 IK 分支 |
 
@@ -27,6 +28,7 @@ PYTHONPATH=src python -m eef_replay.ik.cli --help
 ```
 
 `ik` extra 包含 Pinocchio、SciPy 和 PyYAML。基础包仍只要求 NumPy。
+Placo 环境和源码快照的使用方法见 [Placo 接入说明](placo.md)。
 
 ## 起始状态与 seed
 
@@ -74,12 +76,17 @@ python experimental_pinocchio_pyroki/solve_continuous_plan.py \
 ```
 
 只评估首帧与进场段时加 `--first-frame-only`；输出明确标记为单帧，不能冒充整段回放。
+可以显式使用 `--frame0-backend continuous` 处理较远的首帧目标，再用
+`--backend differential|placo` 追踪；不指定时所有帧都使用同一个 backend。
 `replay_episode` 也支持两个 backend，每次建立独立的 `run-*` 目录：
 
 ```bash
 ./replay_episode 553 --ik continuous --home-state output/chahua_state.json
 ./replay_episode 553 --ik differential --start-from-current
 ```
+
+短入口新增模式可以设置 `EEF_REPLAY_IK_PYTHON=/path/to/isolated-env/bin/python`，
+选择对应的离线求解环境；默认仍是 `/usr/bin/python3`，旧路径解释器保持原配置。
 
 `--start-from-current` 通过已有 snapshot 工具只读采集。未提交实验中的
 `--home-state` / `--posture-aware` 在短入口中保留，选择 continuous；旧的
@@ -165,3 +172,5 @@ episode553 的已修复 664 帧目标上，continuous 首帧候选保持原先�
 偏移；整段仍复现第 529 帧失败。这次整理保留该限制，不将单帧成功写成整段成功。
 
 当前可选求解不含双臂/环境碰撞检查。实测起点、碰撞模型和整段动力学约束需独立验证。
+
+本次环境版本、31 项测试结果与 episode553 实际结果见 [验证记录](ik-validation.md)。

@@ -1,0 +1,6 @@
+pydata-sphinx-theme
+sphinxcontrib-video
+sphinx-copybutton
+viser
+pin
+numpy

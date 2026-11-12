@@ -1,0 +1,61 @@
+[build-system]
+build-backend = "cmeel"
+requires = [
+  "cmeel[build]",
+  "eigenpy[build]==3.13.0",
+  "libcoal[build]==3.0.3",
+  "rhoban-cmeel-jsoncpp",
+  "doxystub >= 0.1.7",
+  "cmeel-tinyxml2==11.0.0",
+  "cmake<4"
+]
+
+[project]
+authors = [{ email = "team@rhoban.com", name = "Rhoban team" }]
+classifiers = []
+dependencies = [
+  "eigenpy==3.13.0",
+  "libcoal==3.0.3",
+  "numpy",
+  "rhoban-cmeel-jsoncpp",
+  "cmeel-tinyxml2==11.0.0",
+  "viser",
+  "pycollada",
+  "ischedule"
+]
+description = "PlaCo: Rhoban Planning and Control"
+license = "MIT"
+name = "placo"
+requires-python = ">= 3.10"
+version = "0.11.0"
+
+[project.urls]
+changelog = "https://github.com/rhoban/placo/blob/main/CHANGELOG.md"
+homepage = "https://placo.readthedocs.io/en/latest/"
+repository = "https://github.com/rhoban/placo.git"
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+target-version = "py39"
+
+[tool.tomlsort]
+all = true
+
+[tool.cmeel]
+run-tests = false
+
+
+[tool.cibuildwheel.macos]
+before-all = "brew install --formula doxygen"
+# std::filesystem (model loading) is available from macOS 10.15 (the default target of x86_64 wheels is older)
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y doxygen"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = "apk add doxygen"
+

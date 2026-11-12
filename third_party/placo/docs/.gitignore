@@ -1,0 +1,5 @@
+**/__pycache__
+_build
+module/placo.py
+placo/
+!placo/placo_utils

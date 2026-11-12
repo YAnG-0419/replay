@@ -87,7 +87,10 @@ class BackendTests(unittest.TestCase):
     def test_both_backends_track_with_velocity_caps_and_preserve_payloads(self):
         from eef_replay.ik.cli import parse_args, solve
         source, start, original = self.fixture()
-        for backend in ("continuous", "differential"):
+        backends = ["continuous", "differential"]
+        if importlib.util.find_spec("placo"):
+            backends.append("placo")
+        for backend in backends:
             with self.subTest(backend=backend):
                 output = self.root / (backend + ".json")
                 args = parse_args([str(source), str(output), "--urdf", str(self.urdf),
@@ -132,6 +135,39 @@ class BackendTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Source reference"):
             solve(parse_args([str(source), str(output), "--urdf", str(self.urdf),
                               "--start-state", str(start), "--reference", "source"]))
+        self.assertFalse(output.exists())
+
+    def test_placo_missing_dependency_does_not_fall_back_to_another_solver(self):
+        from unittest.mock import patch
+        from eef_replay.ik.backends import create_solver
+        with patch.dict(sys.modules, {"placo": None}):
+            with self.assertRaisesRegex(RuntimeError, "optional"):
+                create_solver("placo", self.robot, "left_fr3v2_link8", range(7))
+
+    def test_explicit_frame0_initializer_and_later_backend_are_recorded(self):
+        from eef_replay.ik.cli import parse_args, solve
+        source, start, _ = self.fixture(count=3)
+        payload = solve(parse_args([str(source), str(self.root / "initialized.json"),
+                                    "--urdf", str(self.urdf), "--start-state", str(start),
+                                    "--backend", "differential", "--frame0-backend", "continuous"]))
+        self.assertEqual(payload["frame0_backend"], "continuous")
+        self.assertEqual([s["backend"] for s in payload["samples"]],
+                         ["continuous", "differential", "differential"])
+
+    def test_common_runner_rejects_a_backend_moving_other_arm_joints(self):
+        from unittest.mock import patch
+        from eef_replay.ik.cli import parse_args, solve
+        from eef_replay.ik.model import IKResult
+        class BadSolver:
+            def solve_near(self, target, seed, **kwargs):
+                changed = seed.copy()
+                changed[7] += .001
+                return changed, IKResult(True, 0, 0., 0., .001)
+        source, start, _ = self.fixture(count=2)
+        output = self.root / "bad_backend.json"
+        with patch("eef_replay.ik.cli.create_solver", return_value=BadSolver()):
+            with self.assertRaisesRegex(RuntimeError, "outside the current arm"):
+                solve(parse_args([str(source), str(output), "--urdf", str(self.urdf), "--start-state", str(start)]))
         self.assertFalse(output.exists())
 
     def test_profile_joint_order_and_renamed_robot_are_respected(self):

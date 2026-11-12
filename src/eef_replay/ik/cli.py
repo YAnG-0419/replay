@@ -40,6 +40,8 @@ def parse_args(argv=None):
     parser.add_argument("output", type=Path)
     parser.add_argument("--urdf", required=True, type=Path)
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="continuous")
+    parser.add_argument("--frame0-backend", choices=tuple(BACKENDS),
+                        help="Explicit optional initializer for frame zero; later frames use --backend")
     parser.add_argument("--robot", default="franka-sharpa")
     parser.add_argument("--robot-config", type=Path, help="Explicit profile for another body")
     parser.add_argument("--start-state", type=Path, help="Offline named arm-joint state")
@@ -135,6 +137,9 @@ def solve(args):
     else:
         references = None
     solvers = {arm.name: create_solver(args.backend, robot, arm.eef_frame, profile.indices(arm)) for arm in profile.arms}
+    frame0_backend = args.frame0_backend or args.backend
+    initializers = (solvers if frame0_backend == args.backend else
+                    {arm.name: create_solver(frame0_backend, robot, arm.eef_frame, profile.indices(arm)) for arm in profile.arms})
     mounts = {arm.name: robot.fixed_base(arm.base_frame) for arm in profile.arms}
     solved, q_values = [], []
     previous = initial.copy()
@@ -144,15 +149,27 @@ def solve(args):
         reference = (references[index] if references is not None else
                      previous if args.reference == "previous" else initial)
         current = previous.copy()
-        result_sample = {"t_s": float(times[index])}
+        frame_backend = frame0_backend if index == 0 else args.backend
+        frame_solvers = initializers if index == 0 else solvers
+        result_sample = {"t_s": float(times[index]), "backend": frame_backend}
         try:
             for arm in profile.arms:
                 indices = profile.indices(arm)
                 target = mounts[arm.name] @ np.array(sample[arm.name][arm.target_key]["matrix"], dtype=float)
-                current, result = solvers[arm.name].solve_near(
+                arm_seed = current.copy()
+                current, result = frame_solvers[arm.name].solve_near(
                     target, current, reference=reference, reference_weight=args.reference_weight,
                     limit_weight=args.limit_weight, max_step=bounds[list(indices)],
                 )
+                current = np.asarray(current, dtype=float)
+                if current.shape != initial.shape or not np.isfinite(current).all():
+                    raise RuntimeError("Backend returned an invalid joint vector")
+                inactive = np.ones(len(current), dtype=bool)
+                inactive[list(indices)] = False
+                if not np.array_equal(current[inactive], arm_seed[inactive]):
+                    raise RuntimeError("Backend moved joints outside the current arm")
+                if np.any(current < robot.lower - 1e-9) or np.any(current > robot.upper + 1e-9):
+                    raise RuntimeError("Backend exceeded configured joint limits")
                 result_sample[f"{arm.name}_arm_joint_positions_rad"] = current[list(indices)].tolist()
                 result_sample[f"{arm.name}_ik"] = result.to_dict()
                 for key in arm.payload_keys:
@@ -168,12 +185,13 @@ def solve(args):
         except RuntimeError as exc:
             failure_path.parent.mkdir(parents=True, exist_ok=True)
             failure = {"execution_enabled": False, "completed": False, "output_written": False,
-                       "backend": args.backend, "robot_profile": profile.name, "failed_frame": index,
+                       "backend": frame_backend, "trajectory_backend": args.backend,
+                       "robot_profile": profile.name, "failed_frame": index,
                        "source_time_s": float(times[index]), "reason": str(exc),
                        "joint_step_bounds_rad": bounds.tolist(),
                        "note": "No partial replay exported; failure does not prove global infeasibility"}
             failure_path.write_text(json.dumps(failure, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-            raise RuntimeError(f"{args.backend} failed at frame {index}, t={times[index]:.6f}s: {exc}") from exc
+            raise RuntimeError(f"{frame_backend} failed at frame {index}, t={times[index]:.6f}s: {exc}") from exc
         solved.append(result_sample)
         q_values.append(current.copy())
         previous = current
@@ -197,6 +215,7 @@ def solve(args):
     payload = {
         "artifact_type": "offline_home_aware_frame0_ik" if args.first_frame_only else "offline_profile_ik",
         "execution_enabled": False, "completed": True, "backend": args.backend,
+        "frame0_backend": frame0_backend,
         "robot_profile": profile.name, "profile": asdict(profile), "joint_names": list(profile.joint_names),
         "source_plan": str(args.plan), "source_plan_sha256": fingerprint(args.plan),
         "source_urdf": str(args.urdf), "source_urdf_sha256": fingerprint(args.urdf),

@@ -7,6 +7,7 @@ from importlib import import_module
 BACKENDS = {
     "continuous": ("eef_replay.ik.continuous", "ContinuousIK"),
     "differential": ("eef_replay.ik.differential", "DifferentialIK"),
+    "placo": ("eef_replay.ik.placo_backend", "PlacoIK"),
 }
 
 

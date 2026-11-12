@@ -75,6 +75,9 @@ PYTHONPATH=src python -m eef_replay.cli \
 `solve_bimanual_plan.py` 保留原实现，`./replay_episode 395` 的默认流程仍为
 Pinocchio IK + PyRoki 平滑。可选求解器不会替换默认结果文件。
 
+Placo 0.11.0 也已作为可选后端接入，官方源码快照保存在 `third_party/placo/`；
+独立环境安装、版本与使用方法见 [Placo 接入说明](docs/placo.md)。
+
 新增的连续 IK、微分 IK、可微分局部解接口和本体扩展说明见 **[IK 使用说明](docs/ik.md)**。
 
 ```bash
